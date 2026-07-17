@@ -57,7 +57,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            dashboard_path = "/Users/urbanclay/Downloads/dashboard.html"
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            dashboard_path = os.path.join(current_dir, "dashboard.html")
             try:
                 if os.path.exists(dashboard_path):
                     with open(dashboard_path, "r", encoding="utf-8") as f:
