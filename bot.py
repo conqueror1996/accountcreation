@@ -195,6 +195,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         elif self.path == "/api/user/logout-all":
             with sessions_lock:
                 authenticated_sessions.clear()
+            add_log("🔓 All cached active browser sessions cleared successfully")
             self.wfile.write(json.dumps({"status": "success", "message": "All cached sessions cleared successfully"}).encode("utf-8"))
 
 

@@ -1525,6 +1525,24 @@
             if (!confirm("Are you sure you want to logout all accounts? This will clear all active sessions from the server cache.")) {
                 return;
             }
+            
+            // 1. Immediately reset UI card balances in realtime
+            document.querySelectorAll(".balance-value").forEach(el => {
+                el.textContent = "Logged Out";
+                el.style.color = "var(--text-secondary)";
+            });
+
+            // 2. Append immediate local log line
+            const term = document.getElementById("terminal-body");
+            if (term) {
+                const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+                const lineDiv = document.createElement("div");
+                lineDiv.className = "terminal-line";
+                lineDiv.innerHTML = `<span class="terminal-timestamp">[${timestamp}]</span> <span class="terminal-text">🔓 Logout request triggered: Clearing all active sessions...</span>`;
+                term.appendChild(lineDiv);
+                term.scrollTop = term.scrollHeight;
+            }
+
             try {
                 const res = await fetch("/api/user/logout-all", { method: "POST" });
                 if (!res.ok) throw new Error();
