@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REBOTICS - Control Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Fira+Code:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0d13;
+            --panel-bg: rgba(22, 28, 45, 0.45);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #8e9bb2;
+            --accent-cyan: #00f2fe;
+            --accent-violet: #4facfe;
+            --accent-green: #39d353;
+            --accent-red: #ff453a;
+            --shadow-color: rgba(0, 242, 254, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1a1f35 0%, var(--bg-color) 70%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            padding: 24px;
+        }
+
+        /* === Accounts Section Styles === */
+        .accounts-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .accounts-section-header .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .accounts-section-header .section-title .title-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .accounts-section-header .account-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-left: 8px;
+        }
+        .btn-refresh {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-secondary);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-refresh:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        /* Domain Tabs */
+        .domain-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            overflow-x: auto;
+        }
+        .domain-tab {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .domain-tab:hover {
+            background: rgba(255,255,255,0.07);
+            color: var(--text-primary);
+        }
+        .domain-tab.active {
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(79, 172, 254, 0.15) 100%);
+            border-color: rgba(0, 242, 254, 0.3);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(0, 242, 254, 0.1);
+        }
+        .domain-tab .tab-count {
+            background: rgba(255,255,255,0.1);
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .domain-tab.active .tab-count {
+            background: rgba(0, 242, 254, 0.2);
+        }
+
+        /* Accounts Container Scrollbar */
+        #accounts-container {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.12) transparent;
+        }
+        #accounts-container::-webkit-scrollbar {
+            height: 5px;
+        }
+        #accounts-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #accounts-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        #accounts-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Account Card */
+        .account-card {
+            flex: 0 0 260px;
+            min-width: 260px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 16px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .account-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #10B981, #059669);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .account-card:hover {
+            border-color: rgba(16, 185, 129, 0.25);
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .account-card:hover::before {
+            opacity: 1;
+        }
+        .account-card .card-user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .account-card .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .account-card .user-info {
+            flex: 1;
+            margin-left: 10px;
+            overflow: hidden;
+        }
+        .account-card .user-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .account-card .user-date {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .account-card .user-info:hover .user-name {
+            color: var(--accent-cyan);
+        }
+        .account-card .user-name .copy-icon {
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 10px;
+        }
+        .account-card .user-info:hover .user-name .copy-icon {
+            opacity: 1;
+        }
+        .account-card .card-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 11px;
+        }
+        .account-card .card-detail-row .label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .account-card .card-detail-row .value {
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color 0.2s;
+        }
+        .account-card .card-detail-row .value:hover {
+            color: var(--accent-cyan);
+        }
+        .account-card .card-detail-row .value .copy-icon {
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 10px;
+        }
+        .account-card .card-detail-row .value:hover .copy-icon {
+            opacity: 1;
+        }
+        .account-card .balance-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.1);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-top: 8px;
+        }
+        .account-card .balance-row .balance-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .account-card .balance-row .balance-value {
+            font-size: 15px;
+            font-weight: 800;
+            color: #10B981;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .account-card .balance-row .btn-refresh-balance {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+        .account-card .balance-row .btn-refresh-balance:hover {
+            color: #10B981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .account-card .btn-deposit {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white;
+            transition: all 0.25s ease;
+            letter-spacing: 0.3px;
+        }
+        .account-card .btn-deposit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            filter: brightness(1.1);
+        }
+
+        /* Toast notification */
+        .copy-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(16, 185, 129, 0.95);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+        }
+        .copy-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto 24px auto;
+            padding: 16px 24px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+        }
+
+        .logo-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #ffffff, #d2d8e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--panel-border);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+            box-shadow: 0 0 8px var(--accent-red);
+        }
+
+        .status-dot.active {
+            background-color: var(--accent-green);
+            box-shadow: 0 0 12px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(57, 211, 83, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(57, 211, 83, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(57, 211, 83, 0); }
+        }
+
+        main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-areas: 
+                "balance console"
+                "setup console";
+            gap: 24px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex-grow: 1;
+        }
+
+        .balance-card {
+            grid-area: balance;
+        }
+
+        .setup-card {
+            grid-area: setup;
+        }
+
+        .console-card {
+            grid-area: console;
+        }
+
+        .card-header {
+            padding: 20px 24px 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+        }
+
+        /* Balance Card */
+        .balance-card {
+            padding: 24px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            background: linear-gradient(135deg, rgba(22, 28, 45, 0.6), rgba(47, 32, 66, 0.3));
+        }
+
+        .balance-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .balance-val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 42px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 12px rgba(0, 242, 254, 0.1);
+        }
+
+        .balance-sub {
+            font-size: 12px;
+            color: var(--accent-green);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Setup Card */
+        .setup-card {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding-left: 32px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            text-transform: none;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .checkbox-container input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 20px;
+            width: 20px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-container:hover input ~ .checkmark {
+            border-color: var(--accent-cyan);
+            background-color: rgba(0, 242, 254, 0.05);
+        }
+
+        .checkbox-container input:checked ~ .checkmark {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+            border-color: transparent;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .checkbox-container input:checked ~ .checkmark:after {
+            display: block;
+        }
+
+        .checkbox-container .checkmark:after {
+            left: 7px;
+            top: 3px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.1);
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        select option {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        /* Toggle switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 56px;
+            height: 30px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: .4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border-radius: 34px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+            box-shadow: 0 0 15px var(--shadow-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, var(--accent-violet), #7b2cbf);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(123, 44, 191, 0.4);
+        }
+
+        .btn-download:active {
+            transform: translateY(0);
+        }
+
+        /* Console Log Card */
+        .console-card {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            height: 100%;
+            min-height: 480px;
+        }
+
+        .terminal {
+            flex-grow: 1;
+            background: rgba(5, 7, 10, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            padding: 16px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            overflow-y: auto;
+            max-height: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .terminal-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .terminal-line span.timestamp {
+            color: rgba(255, 255, 255, 0.3);
+            margin-right: 8px;
+        }
+
+        /* Log Line Highlighting */
+        .terminal-line.success {
+            color: var(--accent-green);
+        }
+
+        .terminal-line.error {
+            color: var(--accent-red);
+        }
+
+        .terminal-line.info {
+            color: var(--accent-cyan);
+        }
+
+        .terminal-line.warning {
+            color: #ffb703;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 24px;
+            opacity: 0.5;
+        }
+
+        /* ============================================
+           MOBILE RESPONSIVE STYLES
+           ============================================ */
+
+        /* Tablet & small desktop (≤ 900px) */
+        @media (max-width: 900px) {
+            body {
+                padding: 16px;
+            }
+
+            main {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "balance"
+                    "console"
+                    "setup";
+            }
+
+            header {
+                padding: 12px 16px;
+                margin-bottom: 16px;
+            }
+
+            .logo-text {
+                font-size: 18px;
+            }
+
+            .balance-val {
+                font-size: 34px;
+            }
+
+            .card-header {
+                padding: 16px 18px 8px 18px;
+            }
+
+            .card-title {
+                font-size: 16px;
+            }
+        }
+
+        /* Mobile (≤ 768px) */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            header {
+                flex-direction: row;
+                padding: 8px 12px;
+                margin-bottom: 10px;
+                border-radius: 10px;
+                gap: 0;
+            }
+
+            .logo-icon {
+                font-size: 18px;
+            }
+
+            .logo-text {
+                font-size: 14px;
+                letter-spacing: 0.5px;
+            }
+
+            .status-badge {
+                font-size: 10px;
+                padding: 4px 8px;
+                border-radius: 12px;
+                gap: 5px;
+            }
+
+            .status-dot {
+                width: 6px;
+                height: 6px;
+            }
+
+            /* Reorder sections: accounts first on mobile */
+            body {
+                display: flex;
+                flex-direction: column;
+            }
+            body > header { order: 1; }
+            body > main:first-of-type { order: 3; }
+            body > #copy-toast { order: 2; }
+            body > main:last-of-type { order: 2; }
+            body > footer { order: 4; }
+
+            .balance-val {
+                font-size: 28px;
+            }
+
+            .balance-card {
+                padding: 18px;
+            }
+
+            .setup-card {
+                padding: 18px;
+            }
+
+
+
+            .console-card {
+                min-height: 140px;
+            }
+
+            .terminal {
+                max-height: 120px;
+                font-size: 11px;
+                padding: 10px;
+            }
+
+            /* Accounts section */
+            .accounts-section-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .accounts-section-header .btn-refresh {
+                align-self: flex-end;
+            }
+
+            .account-card {
+                flex: 0 0 230px;
+                min-width: 230px;
+                padding: 14px;
+            }
+
+            .account-card .user-avatar {
+                width: 30px;
+                height: 30px;
+                font-size: 12px;
+            }
+
+            .account-card .user-name {
+                font-size: 12px;
+            }
+
+            .account-card .balance-row .balance-value {
+                font-size: 13px;
+            }
+
+            .account-card .btn-deposit {
+                padding: 7px;
+                font-size: 11px;
+            }
+
+
+
+            /* Deposit Modal */
+            #deposit-modal .glass-panel {
+                width: 92vw !important;
+                max-width: 400px;
+                padding: 20px !important;
+            }
+
+            .btn-download {
+                padding: 12px;
+                font-size: 14px;
+            }
+        }
+
+        /* Small mobile (≤ 480px) */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            header {
+                padding: 10px 12px;
+                border-radius: 12px;
+            }
+
+            .logo-icon {
+                font-size: 22px;
+            }
+
+            .logo-text {
+                font-size: 16px;
+            }
+
+            .status-badge {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+
+            .glass-panel {
+                border-radius: 12px;
+            }
+
+            .balance-val {
+                font-size: 24px;
+            }
+
+            .balance-label {
+                font-size: 11px;
+            }
+
+            .balance-card {
+                padding: 14px;
+            }
+
+            .setup-card {
+                padding: 14px;
+                gap: 14px;
+            }
+
+            .card-header {
+                padding: 14px 14px 6px 14px;
+            }
+
+            .card-title {
+                font-size: 14px;
+            }
+
+            label {
+                font-size: 10px;
+            }
+
+            textarea {
+                font-size: 12px;
+                height: 80px;
+                padding: 10px;
+            }
+
+            select, input[type="number"] {
+                font-size: 12px;
+                padding: 10px;
+            }
+
+            .checkbox-container {
+                font-size: 12px;
+                padding-left: 28px;
+            }
+
+            .checkmark {
+                height: 18px;
+                width: 18px;
+            }
+
+
+
+            .switch {
+                width: 48px;
+                height: 26px;
+            }
+
+            .slider:before {
+                height: 18px;
+                width: 18px;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(22px);
+            }
+
+            .console-card {
+                min-height: 110px;
+            }
+
+            .terminal {
+                max-height: 90px;
+                font-size: 10px;
+                padding: 8px;
+                line-height: 1.3;
+            }
+
+            .btn-download {
+                padding: 10px;
+                font-size: 13px;
+                gap: 6px;
+            }
+
+            /* Accounts section */
+            .accounts-section-header .section-title {
+                font-size: 14px;
+                gap: 8px;
+            }
+
+            .accounts-section-header .section-title .title-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+            }
+
+            .accounts-section-header .account-count {
+                font-size: 10px;
+                padding: 3px 8px;
+            }
+
+            .domain-tabs {
+                gap: 6px;
+                margin-bottom: 12px;
+                padding-bottom: 10px;
+            }
+
+            .domain-tab {
+                padding: 5px 12px;
+                font-size: 11px;
+                gap: 4px;
+            }
+
+            .domain-tab .tab-count {
+                font-size: 9px;
+                padding: 1px 5px;
+            }
+
+            .account-card {
+                flex: 0 0 210px;
+                min-width: 210px;
+                padding: 12px;
+                border-radius: 12px;
+            }
+
+            .account-card .card-user-header {
+                margin-bottom: 8px;
+            }
+
+            .account-card .user-avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 11px;
+                border-radius: 8px;
+            }
+
+            .account-card .user-info {
+                margin-left: 8px;
+            }
+
+            .account-card .user-name {
+                font-size: 11px;
+            }
+
+            .account-card .user-date {
+                font-size: 9px;
+            }
+
+            .account-card .card-detail-row {
+                font-size: 10px;
+                padding: 4px 0;
+            }
+
+            .account-card .card-detail-row .value {
+                font-size: 10px;
+            }
+
+            .account-card .balance-row {
+                padding: 6px 8px;
+                margin-top: 6px;
+            }
+
+            .account-card .balance-row .balance-label {
+                font-size: 9px;
+            }
+
+            .account-card .balance-row .balance-value {
+                font-size: 13px;
+            }
+
+            .account-card .btn-deposit {
+                margin-top: 8px;
+                padding: 6px;
+                font-size: 10px;
+                border-radius: 6px;
+            }
+
+            /* Deposit Modal */
+            #deposit-modal .glass-panel {
+                width: 95vw !important;
+                padding: 16px !important;
+                border-radius: 12px;
+            }
+
+            /* Copy toast */
+            .copy-toast {
+                font-size: 11px;
+                padding: 6px 16px;
+                bottom: 20px;
+            }
+
+            footer {
+                font-size: 10px;
+                margin-top: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="glass-panel">
+        <div class="logo-container">
+            <span class="logo-icon">🤖</span>
+            <span class="logo-text">REBOTICS</span>
+        </div>
+        <div class="status-badge">
+            <div id="status-dot" class="status-dot"></div>
+            <span id="status-text">Bot Offline</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- Balance Card -->
+        <div class="glass-panel balance-card">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span class="balance-label">OTP Doctor Wallet</span>
+                <span id="wallet-balance" class="balance-val">₹0.00 INR</span>
+                <span class="balance-sub">🟢 API Connection Healthy</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-left: 15px;">
+                <span style="font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;">Engine Status</span>
+                <label class="switch" style="margin: 0;">
+                    <input type="checkbox" id="engine-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Setup Card -->
+        <div class="glass-panel setup-card">
+            <div class="card-title" style="margin-bottom: 15px;">Registration Setup</div>
+
+            <div class="input-group" style="margin-bottom: 15px;">
+                <label for="otp-api-key-input">OTP Doctor API Key</label>
+                <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                    <input type="password" id="otp-api-key-input" placeholder="Enter your API Key (Uses default if empty)" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; padding-right: 40px; color: var(--text-primary); font-family: monospace; font-size: 13px; outline: none; transition: border-color 0.3s;">
+                    <button type="button" onclick="toggleApiKeyVisibility()" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px; padding: 4px;">👁️</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Target Host URLs (Select all that apply)</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" name="host-url" value="cricmatch247.com" checked>
+                        <span class="checkmark"></span>
+                        cricmatch247.com
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" name="host-url" value="starexch555.com" checked>
+                        <span class="checkmark"></span>
+                        starexch555.com
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" name="host-url" value="playcric365.com" checked>
+                        <span class="checkmark"></span>
+                        playcric365.com
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" name="host-url" value="khelstake24.com" checked>
+                        <span class="checkmark"></span>
+                        khelstake24.com
+                    </label>
+                </div>
+                <input type="text" id="custom-host-input" placeholder="Add custom domain (e.g. example.com) and press Enter" style="margin-top: 10px; width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 14px; outline: none;">
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="service-select">OTP Service Category</label>
+                    <select id="service-select">
+                        <option value="auto">Auto-Select best category (Recommended)</option>
+                        <option value="10704">Playkaro (10704)</option>
+                        <option value="6272">Cricmatch (6272)</option>
+                        <option value="10940">Starexch (10940)</option>
+                        <option value="12827">ALL Any Other (12827)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-row" style="margin-top: 10px;">
+                <div class="input-group">
+                    <label for="threads-select">Parallel Engines (Threads)</label>
+                    <select id="threads-select">
+                        <option value="1">1 Active Engine (Sequential)</option>
+                        <option value="2">2 Active Engines (Double Speed)</option>
+                        <option value="3">3 Active Engines (Triple Speed)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="download-btn" class="btn-download" style="margin-top: 10px;">
+                <span>📊</span> Download excel Database
+            </button>
+        </div>
+
+        <!-- Terminal Log -->
+        <div class="glass-panel console-card">
+            <div class="card-header">
+                <div class="card-title">Live Action Terminal / Console Log</div>
+            </div>
+            <div id="terminal-body" class="terminal">
+                <!-- Logs populated here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Copy Toast -->
+    <div id="copy-toast" class="copy-toast">Copied to clipboard!</div>
+
+    <!-- Lower Section: Accounts & Casino Scanner -->
+    <main style="max-width: 1200px; margin: 30px auto 0 auto; padding: 0; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Full-Width: Registered Accounts with Domain Tabs -->
+        <div class="glass-panel" style="padding: 24px; min-width: 0; overflow: hidden; width: 100%;">
+            <div class="accounts-section-header">
+                <div class="section-title">
+                    <div class="title-icon">💼</div>
+                    <span>Registered Accounts</span>
+                    <span id="total-account-count" class="account-count">0 accounts</span>
+                </div>
+                <button onclick="loadRegisteredUsers()" class="btn-refresh">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                    Refresh
+                </button>
+            </div>
+            
+            <!-- Domain Tabs -->
+            <div id="domain-tabs" class="domain-tabs">
+                <!-- Tab buttons dynamically loaded -->
+            </div>
+            
+            <!-- Cards Container -->
+            <div id="accounts-container" style="display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 16px; padding-bottom: 12px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                <div style="color: var(--text-secondary); text-align: center; padding: 30px; width: 100%; font-size: 13px;">No registered accounts loaded. Click Refresh.</div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Deposit UPI & UTR Submission Modal -->
+    <div id="deposit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(10px);">
+        <div class="glass-panel" style="width: 400px; padding: 30px; position: relative;">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);">Automated Deposit</div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Domain</label>
+                <div id="modal-domain" style="font-size: 14px; color: var(--text-primary); background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;"></div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Username</label>
+                <div id="modal-username" style="font-size: 14px; color: var(--text-primary); background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;"></div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Deposit Amount (INR)</label>
+                <input type="number" id="deposit-amount" value="500" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; color: var(--text-primary); outline: none;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <button onclick="initiateDepositGateway()" id="btn-gateway-pay" class="btn-download" style="width: 100%; margin: 0; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);">Proceed to Gateway</button>
+            </div>
+            
+            <div style="margin-bottom: 20px; text-align: center; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px dashed rgba(255,255,255,0.2);">
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">Scan UPI QR or Copy UPI ID</div>
+                <div id="modal-upi-id" style="font-size: 16px; font-weight: 700; color: #10B981; word-break: break-all; margin-bottom: 10px;">Click Proceed to load...</div>
+                
+                <!-- QR Code visual -->
+                <div id="modal-qr" style="width: 150px; height: 150px; background: white; margin: 0 auto 10px auto; padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <img src="" id="qr-img" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                    <div id="qr-placeholder" style="color: #333; font-size: 12px; font-weight: 600;">Awaiting payload...</div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Payment UTR / Reference No. (12 Digits)</label>
+                <input type="text" id="deposit-utr" placeholder="Enter UTR after paying" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; color: var(--text-primary); outline: none;">
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeDepositModal()" class="btn-download" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); flex: 1; margin: 0;">Cancel</button>
+                <button onclick="submitDepositPayment()" class="btn-download" style="flex: 1; margin: 0; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">Submit UTR</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        REBOTICS CONTROL BOARD v1.0.0 &copy; 2026. Made with Visual Excellence.
+    </footer>
+
+    <script>
+        const balanceEl = document.getElementById("wallet-balance");
+        const serviceSelect = document.getElementById("service-select");
+        const engineToggle = document.getElementById("engine-toggle");
+        const statusDot = document.getElementById("status-dot");
+        const statusText = document.getElementById("status-text");
+        const terminalBody = document.getElementById("terminal-body");
+        const downloadBtn = document.getElementById("download-btn");
+
+        let lastLogs = [];
+
+        // Fetch state and logs
+        async function fetchStatus() {
+            try {
+                const apiKey = localStorage.getItem("bot_otp_api_key") || "";
+                const res = await fetch("/api/status", {
+                    headers: {
+                        "X-OTP-API-Key": apiKey
+                    }
+                });
+                if (!res.ok) throw new Error("Failed to fetch status");
+                const data = await res.json();
+
+                // Update balance
+                balanceEl.textContent = `₹${parseFloat(data.balance).toFixed(2)} INR`;
+
+                // Update active state
+                if (data.is_running) {
+                    statusDot.classList.add("active");
+                    statusText.textContent = "Bot Running";
+                    engineToggle.checked = true;
+                } else {
+                    statusDot.classList.remove("active");
+                    statusText.textContent = "Bot Idle";
+                    engineToggle.checked = false;
+                }
+
+                // If fields not active, populate from server
+                if (data.urls && data.urls.length > 0) {
+                    const checkboxes = document.querySelectorAll('input[name="host-url"]');
+                    const predefinedUrls = Array.from(checkboxes).map(cb => cb.value);
+                    
+                    checkboxes.forEach(cb => {
+                        cb.checked = data.urls.includes(cb.value);
+                    });
+                    
+                    const customUrls = data.urls.filter(u => !predefinedUrls.includes(u));
+                    const customHostInput = document.getElementById("custom-host-input");
+                    if (customUrls.length > 0 && document.activeElement !== customHostInput) {
+                        customHostInput.value = customUrls.join(", ");
+                    }
+                }
+                if (document.activeElement !== serviceSelect && data.service_id) {
+                    serviceSelect.value = data.service_id;
+                }
+
+                // Populate logs
+                updateLogs(data.logs);
+            } catch (err) {
+                console.error("Fetch Status Error:", err);
+                statusDot.classList.remove("active");
+                statusText.textContent = "Server Offline";
+            }
+        }
+
+        function updateLogs(logs) {
+            if (!logs) return;
+            // Check if logs changed
+            if (JSON.stringify(logs) === JSON.stringify(lastLogs)) return;
+            lastLogs = logs;
+
+            terminalBody.innerHTML = "";
+            logs.forEach(line => {
+                const lineDiv = document.createElement("div");
+                lineDiv.className = "terminal-line";
+
+                // Highlighting style check
+                const lineLower = line.toLowerCase();
+                if (lineLower.includes("सफल") || lineLower.includes("success")) {
+                    lineDiv.className = "terminal-line success";
+                } else if (lineLower.includes("रुकावट") || lineLower.includes("error") || lineLower.includes("❌") || lineLower.includes("failed")) {
+                    lineDiv.className = "terminal-line error";
+                } else if (lineLower.includes("📡") || lineLower.includes("fetching") || lineLower.includes("info")) {
+                    lineDiv.className = "terminal-line info";
+                } else if (lineLower.includes("⚠️") || lineLower.includes("warning")) {
+                    lineDiv.className = "terminal-line warning";
+                }
+
+                // Format timestamp
+                const match = line.match(/^(\[\d{2}:\d{2}:\d{2}\])\s*(.*)/);
+                if (match) {
+                    const ts = document.createElement("span");
+                    ts.className = "timestamp";
+                    ts.textContent = match[1];
+                    lineDiv.appendChild(ts);
+                    
+                    const textNode = document.createTextNode(match[2]);
+                    lineDiv.appendChild(textNode);
+                } else {
+                    lineDiv.textContent = line;
+                }
+
+                terminalBody.appendChild(lineDiv);
+            });
+
+            // Scroll to bottom
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        // Toggle engine handler
+        engineToggle.addEventListener("change", async (e) => {
+            const isChecked = e.target.checked;
+            const serviceId = serviceSelect.value;
+            const threadsCount = document.getElementById("threads-select").value;
+
+            // Get checked host URLs
+            const checkedBoxes = document.querySelectorAll('input[name="host-url"]:checked');
+            const urls = Array.from(checkedBoxes).map(cb => cb.value);
+            
+            const customHostInput = document.getElementById("custom-host-input");
+            const customHost = customHostInput.value.trim();
+            if (customHost) {
+                const customUrls = customHost.split(/[\s,]+/).map(u => u.trim()).filter(u => u.length > 0);
+                urls.push(...customUrls);
+            }
+
+            if (isChecked) {
+                if (urls.length === 0) {
+                    alert("कृपया कम से कम एक Host URL चुनें या डालें!");
+                    engineToggle.checked = false;
+                    return;
+                }
+                
+                try {
+                    const apiKey = localStorage.getItem("bot_otp_api_key") || "";
+                    const res = await fetch("/api/start", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ 
+                            urls, 
+                            service_id: serviceId, 
+                            threads: parseInt(threadsCount),
+                            otp_api_key: apiKey
+                        })
+                    });
+                    if (res.ok) {
+                        statusDot.classList.add("active");
+                        statusText.textContent = "Bot Running";
+                    }
+                } catch (err) {
+                    alert("ऑटोमेशन शुरू करने में विफल!");
+                    engineToggle.checked = false;
+                }
+            } else {
+                try {
+                    await fetch("/api/stop", { method: "POST" });
+                    statusDot.classList.remove("active");
+                    statusText.textContent = "Bot Idle";
+                } catch (err) {
+                    alert("ऑटोमेशन रोकने में विफल!");
+                    engineToggle.checked = true;
+                }
+            }
+        });
+
+        // Download excel handler
+        downloadBtn.addEventListener("click", () => {
+            window.location.href = "/api/data";
+        });
+
+        // ---------------- DYNAMIC USER CARDS & DEPOSIT SCRIPTS ----------------
+        let registeredUsers = {};
+        let activeDomain = "";
+
+        async function loadRegisteredUsers() {
+            try {
+                const res = await fetch("/api/users");
+                if (!res.ok) throw new Error("Failed to fetch users");
+                registeredUsers = await res.json();
+                
+                // Render domain tabs
+                const tabsContainer = document.getElementById("domain-tabs");
+                tabsContainer.innerHTML = "";
+                
+                const domains = Object.keys(registeredUsers);
+                const totalUsers = Object.values(registeredUsers).reduce((s, a) => s + a.length, 0);
+                document.getElementById("total-account-count").textContent = `${totalUsers} account${totalUsers !== 1 ? 's' : ''}`;
+
+                if (domains.length === 0) {
+                    tabsContainer.innerHTML = "<div style='color: var(--text-secondary); padding: 5px; font-size: 12px;'>No domains found. Run engine first!</div>";
+                    document.getElementById("accounts-container").innerHTML = "<div style='color: var(--text-secondary); text-align: center; padding: 30px; font-size: 13px;'>No registered accounts.</div>";
+                    return;
+                }
+                
+                if (!activeDomain || !domains.includes(activeDomain)) {
+                    activeDomain = domains[0];
+                }
+                
+                domains.forEach(domain => {
+                    const btn = document.createElement("button");
+                    btn.className = `domain-tab${domain === activeDomain ? ' active' : ''}`;
+                    const shortDomain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                    btn.innerHTML = `<span>🌐 ${shortDomain}</span><span class="tab-count">${registeredUsers[domain].length}</span>`;
+                    btn.onclick = () => {
+                        activeDomain = domain;
+                        renderActiveDomainCards();
+                        loadRegisteredUsers();
+                    };
+                    tabsContainer.appendChild(btn);
+                });
+                
+                renderActiveDomainCards();
+            } catch (err) {
+                console.error("Load users error:", err);
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            const toast = document.getElementById('copy-toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 1500);
+        }
+
+        async function deleteUserCard(domain, username) {
+            if (!confirm(`Are you sure you want to delete ${username} from ${domain}?`)) {
+                return;
+            }
+            try {
+                const res = await fetch("/api/user/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ domain, username })
+                });
+                const data = await res.json();
+                if (data.status === "success") {
+                    const toast = document.getElementById('copy-toast');
+                    toast.textContent = "Deleted successfully!";
+                    toast.style.background = "rgba(239, 68, 68, 0.95)";
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                        toast.style.background = "rgba(16, 185, 129, 0.95)";
+                        toast.textContent = "Copied to clipboard!";
+                    }, 1500);
+                    loadRegisteredUsers();
+                } else {
+                    alert(data.message || "Failed to delete user");
+                }
+            } catch (err) {
+                console.error("Delete user error:", err);
+                alert("Failed to connect to server");
+            }
+        }
+
+        function renderActiveDomainCards() {
+            const container = document.getElementById("accounts-container");
+            container.innerHTML = "";
+            
+            const users = registeredUsers[activeDomain] || [];
+            if (users.length === 0) {
+                container.innerHTML = "<div style='color: var(--text-secondary); text-align: center; width: 100%; padding: 30px; font-size: 13px;'>No users found for this domain.</div>";
+                return;
+            }
+            
+            users.forEach((user, idx) => {
+                const card = document.createElement("div");
+                card.className = "account-card";
+                
+                const cardId = `balance-${idx}`;
+                const initials = user.username.substring(0, 2).toUpperCase();
+                const maskedPass = user.password.length > 3 ? user.password.substring(0, 2) + '•'.repeat(Math.min(user.password.length - 2, 6)) : user.password;
+                const dateStr = user.timestamp ? user.timestamp.split(' ')[0] : '';
+                
+                card.innerHTML = `
+                    <div class="card-user-header">
+                        <div class="user-avatar">${initials}</div>
+                        <div class="user-info" onclick="copyToClipboard('${user.username}')" style="cursor:pointer;" title="Click to copy username">
+                            <div class="user-name">${user.username} <span class="copy-icon">📋</span></div>
+                            <div class="user-date">${dateStr}</div>
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteUserCard('${user.domain}', '${user.username}')" style="background: none; border: none; color: var(--accent-red); cursor: pointer; padding: 4px; font-size: 14px; opacity: 0.7; transition: opacity 0.2s; margin-left: 8px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" title="Delete Account">🗑️</button>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="label">Password</span>
+                        <span class="value" onclick="copyToClipboard('${user.password}')">${maskedPass} <span class="copy-icon">📋</span></span>
+                    </div>
+                    <div class="card-detail-row">
+                        <span class="label">Phone</span>
+                        <span class="value" onclick="copyToClipboard('${user.phone}')">${user.phone} <span class="copy-icon">📋</span></span>
+                    </div>
+                    <div class="balance-row">
+                        <div>
+                            <div class="balance-label">Balance</div>
+                            <div class="balance-value" id="${cardId}">${user.balance}</div>
+                        </div>
+                        <button class="btn-refresh-balance" onclick="refreshUserBalance('${user.domain}', '${user.username}', '${user.password}', '${cardId}')" title="Refresh Balance">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                        </button>
+                    </div>
+                    <button class="btn-deposit" onclick="openDepositModal('${user.domain}', '${user.username}', '${user.password}')">💰 Quick Deposit</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function refreshUserBalance(domain, username, password, elementId) {
+            const el = document.getElementById(elementId);
+            el.textContent = "Loading...";
+            el.style.color = "var(--text-secondary)";
+            
+            try {
+                const res = await fetch("/api/user/balance", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ domain, username, password })
+                });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                el.textContent = data.balance;
+                el.style.color = "#10B981";
+            } catch (err) {
+                el.textContent = "Error";
+                el.style.color = "red";
+            }
+        }
+
+        let currentDepositUser = {};
+        let currentGatewayPayload = null;
+
+        async function openDepositModal(domain, username, password) {
+            currentDepositUser = { domain, username, password };
+            currentGatewayPayload = null;
+            
+            document.getElementById("modal-domain").textContent = domain;
+            document.getElementById("modal-username").textContent = username;
+            document.getElementById("modal-upi-id").textContent = "Click Proceed to load...";
+            document.getElementById("qr-placeholder").style.display = "block";
+            document.getElementById("qr-placeholder").textContent = "Awaiting payload...";
+            document.getElementById("qr-img").style.display = "none";
+            document.getElementById("deposit-modal").style.display = "flex";
+            document.getElementById("deposit-utr").value = "";
+            document.getElementById("deposit-amount").value = "500";
+            
+            const btn = document.getElementById("btn-gateway-pay");
+            btn.textContent = "Proceed to Gateway";
+            btn.disabled = false;
+        }
+
+        async function initiateDepositGateway() {
+            const domain = currentDepositUser.domain;
+            const username = currentDepositUser.username;
+            const password = currentDepositUser.password;
+            const amount = parseFloat(document.getElementById("deposit-amount").value.trim()) || 500;
+            
+            const btn = document.getElementById("btn-gateway-pay");
+            btn.textContent = "Initializing...";
+            btn.disabled = true;
+            
+            document.getElementById("modal-upi-id").textContent = "Initializing payment session...";
+            document.getElementById("qr-placeholder").textContent = "Generating QR...";
+            document.getElementById("qr-placeholder").style.display = "block";
+            document.getElementById("qr-img").style.display = "none";
+            
+            try {
+                const res = await fetch("/api/user/deposit/get-upi", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ domain, username, password, amount })
+                });
+                if (!res.ok) throw new Error("Server returned error response");
+                const data = await res.json();
+                
+                if (data.status === "success") {
+                    currentGatewayPayload = data;
+                    document.getElementById("modal-upi-id").textContent = data.upi;
+                    
+                    // Generate QR code url
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=${encodeURIComponent(data.upi)}%26pn=${encodeURIComponent(username)}`;
+                    document.getElementById("qr-img").src = qrUrl;
+                    document.getElementById("qr-img").onload = () => {
+                        document.getElementById("qr-placeholder").style.display = "none";
+                        document.getElementById("qr-img").style.display = "block";
+                    };
+                    
+                    // Natively submit the truelayer checkout POST form in a new window/tab
+                    const form = document.createElement("form");
+                    form.method = "POST";
+                    form.action = data.action;
+                    form.target = "_blank";
+                    
+                    for (const [key, val] of Object.entries(data.fields)) {
+                        const input = document.createElement("input");
+                        input.type = "hidden";
+                        input.name = key;
+                        input.value = val;
+                        form.appendChild(input);
+                    }
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                    document.body.removeChild(form);
+                    
+                    btn.textContent = "Open Gateway Again";
+                    btn.disabled = false;
+                } else {
+                    document.getElementById("modal-upi-id").textContent = "Init Failed: " + (data.message || "Unknown error");
+                    document.getElementById("qr-placeholder").textContent = "Generation failed";
+                    btn.textContent = "Proceed to Gateway";
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                document.getElementById("modal-upi-id").textContent = "Error initializing gateway";
+                document.getElementById("qr-placeholder").textContent = "Generation failed";
+                btn.textContent = "Proceed to Gateway";
+                btn.disabled = false;
+            }
+        }
+
+        function closeDepositModal() {
+            document.getElementById("deposit-modal").style.display = "none";
+        }
+
+        async function submitDepositPayment() {
+            const utr = document.getElementById("deposit-utr").value.trim();
+            const amount = document.getElementById("deposit-amount").value.trim();
+            
+            if (utr.length < 12) {
+                alert("Please enter a valid 12-digit UTR/Reference number!");
+                return;
+            }
+            
+            try {
+                const res = await fetch("/api/user/deposit/submit-utr", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        domain: currentDepositUser.domain,
+                        username: currentDepositUser.username,
+                        password: currentDepositUser.password,
+                        utr: utr,
+                        amount: parseFloat(amount)
+                    })
+                });
+                const data = await res.json();
+                alert(data.message || "UTR submitted!");
+                closeDepositModal();
+            } catch (err) {
+                alert("Failed to submit deposit UTR!");
+            }
+        }
+
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById("otp-api-key-input");
+            if (input.type === "password") {
+                input.type = "text";
+            } else {
+                input.type = "password";
+            }
+        }
+
+        // Save UI settings to localStorage
+        function saveSettingsToStorage() {
+            const serviceId = serviceSelect.value;
+            const threadsCount = document.getElementById("threads-select").value;
+            const checkedBoxes = document.querySelectorAll('input[name="host-url"]:checked');
+            const checkedUrls = Array.from(checkedBoxes).map(cb => cb.value);
+            const customHost = document.getElementById("custom-host-input").value;
+            const otpApiKey = document.getElementById("otp-api-key-input").value;
+            
+            localStorage.setItem("bot_service_id", serviceId);
+            localStorage.setItem("bot_threads_count", threadsCount);
+            localStorage.setItem("bot_checked_urls", JSON.stringify(checkedUrls));
+            localStorage.setItem("bot_custom_host", customHost);
+            localStorage.setItem("bot_otp_api_key", otpApiKey);
+        }
+
+        // Load UI settings from localStorage
+        function loadStoredSettings() {
+            const storedService = localStorage.getItem("bot_service_id");
+            if (storedService) serviceSelect.value = storedService;
+            
+            const storedThreads = localStorage.getItem("bot_threads_count");
+            if (storedThreads) document.getElementById("threads-select").value = storedThreads;
+            
+            const storedChecked = localStorage.getItem("bot_checked_urls");
+            if (storedChecked) {
+                try {
+                    const checkedUrls = JSON.parse(storedChecked);
+                    document.querySelectorAll('input[name="host-url"]').forEach(cb => {
+                        cb.checked = checkedUrls.includes(cb.value);
+                    });
+                } catch(e) {}
+            }
+            
+            const storedCustom = localStorage.getItem("bot_custom_host");
+            if (storedCustom !== null) document.getElementById("custom-host-input").value = storedCustom;
+
+            const storedApiKey = localStorage.getItem("bot_otp_api_key");
+            if (storedApiKey !== null) document.getElementById("otp-api-key-input").value = storedApiKey;
+        }
+
+        // Bind event listeners for auto-save
+        serviceSelect.addEventListener("change", saveSettingsToStorage);
+        document.getElementById("threads-select").addEventListener("change", saveSettingsToStorage);
+        document.getElementById("custom-host-input").addEventListener("input", saveSettingsToStorage);
+        document.getElementById("otp-api-key-input").addEventListener("input", () => {
+            saveSettingsToStorage();
+            fetchStatus(); // Immediately pull new balance on paste/edit
+        });
+        document.querySelectorAll('input[name="host-url"]').forEach(cb => {
+            cb.addEventListener("change", saveSettingsToStorage);
+        });
+
+        // Initialize settings on load
+        loadStoredSettings();
+
+        // Poll status every 2 seconds
+        setInterval(fetchStatus, 2000);
+        
+        // Initial accounts loading
+        loadRegisteredUsers();
+        fetchStatus();
+    </script>
+</body>
+</html>

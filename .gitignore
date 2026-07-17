@@ -1,0 +1,55 @@
+# Virtual Environment
+venv/
+ENV/
+env/
+.env
+.env.local
+
+# Databases & Spreadsheet data
+*.xlsx
+*.xls
+*.csv
+*.db
+*.sqlite
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Large binaries, installers & packages
+*.dmg
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.exe
+*.msi
+
+# Media files
+*.mp4
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.avif
+
+# Documents
+*.pdf
+*.pptx
+*.docx
+*.md
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.class
