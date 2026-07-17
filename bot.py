@@ -193,6 +193,26 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"status": "error", "message": "User not found"}).encode("utf-8"))
 
         elif self.path == "/api/user/logout-all":
+            active_sessions = []
+            with sessions_lock:
+                active_sessions = list(authenticated_sessions.items())
+                
+            # Trigger explicit server-side logout request on each casino host
+            for key, (session, _) in active_sessions:
+                domain, username = key
+                if not domain.startswith("http"):
+                    url = "https://" + domain
+                else:
+                    url = domain
+                try:
+                    csrf = getattr(session, "csrf_token", None)
+                    if csrf:
+                        session.post(f"{url.rstrip('/')}/logout", data={"_token": csrf}, timeout=5)
+                    else:
+                        session.get(f"{url.rstrip('/')}/logout", timeout=5)
+                except Exception:
+                    pass
+                    
             with sessions_lock:
                 authenticated_sessions.clear()
             add_log("🔓 All cached active browser sessions cleared successfully")
