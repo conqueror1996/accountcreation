@@ -192,6 +192,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
             else:
                 self.wfile.write(json.dumps({"status": "error", "message": "User not found"}).encode("utf-8"))
 
+        elif self.path == "/api/user/logout-all":
+            with sessions_lock:
+                authenticated_sessions.clear()
+            self.wfile.write(json.dumps({"status": "success", "message": "All cached sessions cleared successfully"}).encode("utf-8"))
+
 
 # ---------------- OTP DOCTOR SERVICE MAPPINGS ----------------
 DEFAULT_SERVICES = {

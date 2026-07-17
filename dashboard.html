@@ -1293,10 +1293,15 @@
                     <span>Registered Accounts</span>
                     <span id="total-account-count" class="account-count">0 accounts</span>
                 </div>
-                <button onclick="loadRegisteredUsers()" class="btn-refresh">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-                    Refresh
-                </button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button onclick="logoutAllSessions()" class="btn-refresh" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--accent-red); gap: 6px;" onmouseover="this.style.background='rgba(239, 68, 68, 0.25)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'">
+                        <span>🔓</span> Logout All
+                    </button>
+                    <button onclick="loadRegisteredUsers()" class="btn-refresh">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                        Refresh
+                    </button>
+                </div>
             </div>
             
             <!-- Domain Tabs -->
@@ -1515,6 +1520,34 @@
         // ---------------- DYNAMIC USER CARDS & DEPOSIT SCRIPTS ----------------
         let registeredUsers = {};
         let activeDomain = "";
+
+        async function logoutAllSessions() {
+            if (!confirm("Are you sure you want to logout all accounts? This will clear all active sessions from the server cache.")) {
+                return;
+            }
+            try {
+                const res = await fetch("/api/user/logout-all", { method: "POST" });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                if (data.status === "success") {
+                    const toast = document.getElementById('copy-toast');
+                    toast.textContent = "All accounts logged out!";
+                    toast.style.background = "rgba(239, 68, 68, 0.95)";
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                        toast.style.background = "rgba(16, 185, 129, 0.95)";
+                        toast.textContent = "Copied to clipboard!";
+                    }, 2000);
+                    loadRegisteredUsers();
+                } else {
+                    alert(data.message || "Failed to logout accounts");
+                }
+            } catch (err) {
+                console.error("Logout error:", err);
+                alert("Failed to connect to server");
+            }
+        }
 
         async function loadRegisteredUsers() {
             try {
