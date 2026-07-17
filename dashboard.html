@@ -1311,10 +1311,10 @@
         </div>
     </main>
     
-    <!-- Deposit UPI & UTR Submission Modal -->
+    <!-- Deposit UPI & Instant Payment Modal -->
     <div id="deposit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(10px);">
         <div class="glass-panel" style="width: 400px; padding: 30px; position: relative;">
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);">Automated Deposit</div>
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 20px; color: var(--text-primary);">Instant Deposit Gateway</div>
             
             <div style="margin-bottom: 15px;">
                 <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Domain</label>
@@ -1326,34 +1326,14 @@
                 <div id="modal-username" style="font-size: 14px; color: var(--text-primary); background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px;"></div>
             </div>
             
-            <div style="margin-bottom: 15px;">
+            <div style="margin-bottom: 20px;">
                 <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Deposit Amount (INR)</label>
                 <input type="number" id="deposit-amount" value="500" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; color: var(--text-primary); outline: none;">
-            </div>
-
-            <div style="margin-bottom: 15px;">
-                <button onclick="initiateDepositGateway()" id="btn-gateway-pay" class="btn-download" style="width: 100%; margin: 0; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);">Proceed to Gateway</button>
-            </div>
-            
-            <div style="margin-bottom: 20px; text-align: center; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border: 1px dashed rgba(255,255,255,0.2);">
-                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">Scan UPI QR or Copy UPI ID</div>
-                <div id="modal-upi-id" style="font-size: 16px; font-weight: 700; color: #10B981; word-break: break-all; margin-bottom: 10px;">Click Proceed to load...</div>
-                
-                <!-- QR Code visual -->
-                <div id="modal-qr" style="width: 150px; height: 150px; background: white; margin: 0 auto 10px auto; padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <img src="" id="qr-img" style="width: 100%; height: 100%; object-fit: contain; display: none;">
-                    <div id="qr-placeholder" style="color: #333; font-size: 12px; font-weight: 600;">Awaiting payload...</div>
-                </div>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 5px;">Payment UTR / Reference No. (12 Digits)</label>
-                <input type="text" id="deposit-utr" placeholder="Enter UTR after paying" style="width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; color: var(--text-primary); outline: none;">
             </div>
             
             <div style="display: flex; gap: 10px;">
                 <button onclick="closeDepositModal()" class="btn-download" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); flex: 1; margin: 0;">Cancel</button>
-                <button onclick="submitDepositPayment()" class="btn-download" style="flex: 1; margin: 0; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">Submit UTR</button>
+                <button onclick="initiateDepositGateway()" id="btn-gateway-pay" class="btn-download" style="flex: 1; margin: 0; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">Proceed to Pay</button>
             </div>
         </div>
     </div>
@@ -1690,24 +1670,16 @@
         }
 
         let currentDepositUser = {};
-        let currentGatewayPayload = null;
 
         async function openDepositModal(domain, username, password) {
             currentDepositUser = { domain, username, password };
-            currentGatewayPayload = null;
-            
             document.getElementById("modal-domain").textContent = domain;
             document.getElementById("modal-username").textContent = username;
-            document.getElementById("modal-upi-id").textContent = "Click Proceed to load...";
-            document.getElementById("qr-placeholder").style.display = "block";
-            document.getElementById("qr-placeholder").textContent = "Awaiting payload...";
-            document.getElementById("qr-img").style.display = "none";
             document.getElementById("deposit-modal").style.display = "flex";
-            document.getElementById("deposit-utr").value = "";
             document.getElementById("deposit-amount").value = "500";
             
             const btn = document.getElementById("btn-gateway-pay");
-            btn.textContent = "Proceed to Gateway";
+            btn.textContent = "Proceed to Pay";
             btn.disabled = false;
         }
 
@@ -1718,13 +1690,8 @@
             const amount = parseFloat(document.getElementById("deposit-amount").value.trim()) || 500;
             
             const btn = document.getElementById("btn-gateway-pay");
-            btn.textContent = "Initializing...";
+            btn.textContent = "Redirecting...";
             btn.disabled = true;
-            
-            document.getElementById("modal-upi-id").textContent = "Initializing payment session...";
-            document.getElementById("qr-placeholder").textContent = "Generating QR...";
-            document.getElementById("qr-placeholder").style.display = "block";
-            document.getElementById("qr-img").style.display = "none";
             
             try {
                 const res = await fetch("/api/user/deposit/get-upi", {
@@ -1736,17 +1703,6 @@
                 const data = await res.json();
                 
                 if (data.status === "success") {
-                    currentGatewayPayload = data;
-                    document.getElementById("modal-upi-id").textContent = data.upi;
-                    
-                    // Generate QR code url
-                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=${encodeURIComponent(data.upi)}%26pn=${encodeURIComponent(username)}`;
-                    document.getElementById("qr-img").src = qrUrl;
-                    document.getElementById("qr-img").onload = () => {
-                        document.getElementById("qr-placeholder").style.display = "none";
-                        document.getElementById("qr-img").style.display = "block";
-                    };
-                    
                     // Natively submit the truelayer checkout POST form in a new window/tab
                     const form = document.createElement("form");
                     form.method = "POST";
@@ -1765,53 +1721,30 @@
                     form.submit();
                     document.body.removeChild(form);
                     
-                    btn.textContent = "Open Gateway Again";
-                    btn.disabled = false;
+                    // Show a toast that redirected successfully
+                    const toast = document.getElementById('copy-toast');
+                    toast.textContent = "Opening Payment Gateway...";
+                    toast.style.background = "rgba(16, 185, 129, 0.95)";
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2000);
+                    
+                    // Close the modal
+                    closeDepositModal();
                 } else {
-                    document.getElementById("modal-upi-id").textContent = "Init Failed: " + (data.message || "Unknown error");
-                    document.getElementById("qr-placeholder").textContent = "Generation failed";
-                    btn.textContent = "Proceed to Gateway";
+                    alert("Initialization Failed: " + (data.message || "Unknown error"));
+                    btn.textContent = "Proceed to Pay";
                     btn.disabled = false;
                 }
             } catch (err) {
-                document.getElementById("modal-upi-id").textContent = "Error initializing gateway";
-                document.getElementById("qr-placeholder").textContent = "Generation failed";
-                btn.textContent = "Proceed to Gateway";
+                console.error("Deposit gateway error:", err);
+                alert("Error initializing payment gateway. Please try again.");
+                btn.textContent = "Proceed to Pay";
                 btn.disabled = false;
             }
         }
 
         function closeDepositModal() {
             document.getElementById("deposit-modal").style.display = "none";
-        }
-
-        async function submitDepositPayment() {
-            const utr = document.getElementById("deposit-utr").value.trim();
-            const amount = document.getElementById("deposit-amount").value.trim();
-            
-            if (utr.length < 12) {
-                alert("Please enter a valid 12-digit UTR/Reference number!");
-                return;
-            }
-            
-            try {
-                const res = await fetch("/api/user/deposit/submit-utr", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        domain: currentDepositUser.domain,
-                        username: currentDepositUser.username,
-                        password: currentDepositUser.password,
-                        utr: utr,
-                        amount: parseFloat(amount)
-                    })
-                });
-                const data = await res.json();
-                alert(data.message || "UTR submitted!");
-                closeDepositModal();
-            } catch (err) {
-                alert("Failed to submit deposit UTR!");
-            }
         }
 
         function toggleApiKeyVisibility() {
