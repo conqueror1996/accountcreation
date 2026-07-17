@@ -1205,8 +1205,9 @@ def start_automation_loop(user_id, thread_id=1):
 
 def start_http_server():
     try:
-        server = HTTPServer(("0.0.0.0", 8080), DashboardHandler)
-        add_log("🌐 Dashboard Web Server running on http://localhost:8080")
+        port = int(os.getenv("PORT", 8080))
+        server = HTTPServer(("0.0.0.0", port), DashboardHandler)
+        add_log(f"🌐 Dashboard Web Server running on port {port}")
         server.serve_forever()
     except Exception as e:
         add_log(f"❌ Error starting HTTP server: {e}")
