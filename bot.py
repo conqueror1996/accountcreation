@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 
 # सुरक्षा और आसानी के लिए टोकन लोड करना
 load_dotenv()
-OTP_API_KEY = os.getenv("OTP_API_KEY", "emsy9uqwebdwvmwmqe8n47rlk3530ehv")
+OTP_API_KEY = os.getenv("OTP_API_KEY", "")
 
 # ---------------- STORAGE & STATE ----------------
 sessions = {}
@@ -52,6 +52,22 @@ class DashboardHandler(BaseHTTPRequestHandler):
         # Suppress logging in CLI to keep console output clean
         pass
 
+    def get_client_id(self):
+        # 1. Try X-OTP-API-Key header (unique per OTP Doctor user)
+        api_key = self.headers.get("X-OTP-API-Key", "").strip()
+        if api_key:
+            return f"user_{api_key}"
+            
+        # 2. Try X-Forwarded-For (for proxy/Render deployments)
+        forwarded = self.headers.get("X-Forwarded-For", "").strip()
+        if forwarded:
+            ip = forwarded.split(",")[0].strip()
+            return f"user_{ip}"
+            
+        # 3. Fallback to client IP
+        ip = self.client_address[0] if getattr(self, "client_address", None) else "default"
+        return f"user_{ip}"
+
     def do_GET(self):
         if self.path == "/":
             self.send_response(200)
@@ -73,8 +89,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             
-            user_id = list(sessions.keys())[0] if sessions else None
-            is_running = any(is_automation_running.values())
+            user_id = self.get_client_id()
+            is_running = is_automation_running.get(user_id, False)
             
             # Read dynamic API key from headers
             api_key = self.headers.get("X-OTP-API-Key")
@@ -82,7 +98,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             
             urls = []
             service_id = "10704"
-            if user_id and user_id in sessions:
+            if user_id in sessions:
                 urls = sessions[user_id].get("urls", [])
                 if not urls and "url" in sessions[user_id]:
                     urls = [sessions[user_id]["url"]]
@@ -131,32 +147,32 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         
-        user_id = list(sessions.keys())[0] if sessions else 999999999
+        api_key = data.get("otp_api_key", "").strip() or self.headers.get("X-OTP-API-Key", "").strip()
+        user_id = f"user_{api_key}" if api_key else self.get_client_id()
         
         if self.path == "/api/start":
             urls = data.get("urls", [])
             service_id = data.get("service_id", "10704")
-            otp_api_key = data.get("otp_api_key", "")
             
             if user_id not in sessions:
                 sessions[user_id] = {}
             sessions[user_id]["urls"] = urls
             sessions[user_id]["service_id"] = service_id
-            sessions[user_id]["otp_api_key"] = otp_api_key
+            sessions[user_id]["otp_api_key"] = api_key
             
             if not is_automation_running.get(user_id, False):
                 is_automation_running[user_id] = True
                 threads_count = int(data.get("threads", 1))
                 for i in range(threads_count):
                     threading.Thread(target=start_automation_loop, args=(user_id, i+1), daemon=True).start()
-                add_log(f"Dashboard: Automation started with {threads_count} threads.")
+                add_log(f"[{user_id[:12]}] Dashboard: Automation started with {threads_count} threads.")
                 
             self.wfile.write(json.dumps({"status": "success", "message": "Automation started"}).encode("utf-8"))
             
         elif self.path == "/api/stop":
             if user_id in is_automation_running:
                 is_automation_running[user_id] = False
-                add_log("Dashboard: Automation stop requested.")
+                add_log(f"[{user_id[:12]}] Dashboard: Automation stop requested.")
             self.wfile.write(json.dumps({"status": "success", "message": "Automation stop requested"}).encode("utf-8"))
             
         elif self.path == "/api/user/balance":
