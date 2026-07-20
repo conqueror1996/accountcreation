@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 
 # सुरक्षा और आसानी के लिए टोकन लोड करना
 load_dotenv()
-OTP_API_KEY = os.getenv("OTP_API_KEY", "")
+OTP_API_KEY = os.getenv("OTP_API_KEY", "emsy9uqwebdwvmwmqe8n47rlk3530ehv")
 
 # ---------------- STORAGE & STATE ----------------
 sessions = {}
@@ -922,7 +922,7 @@ def start_automation_loop(user_id, thread_id=1):
     print = thread_print
 
     # Pre-populate candidate service IDs list
-    candidate_services = ["12827", "6272", "10704", "10940"]
+    candidate_services = ["6272", "10704", "10940", "12827"]
     first_run = True
 
     while is_automation_running.get(user_id, False):
@@ -943,8 +943,8 @@ def start_automation_loop(user_id, thread_id=1):
         selected_service_id = data.get("service_id", "auto")
         if selected_service_id == "auto":
             if first_run:
-                # Priority candidates: Start with 12827 (Any Other) for universal routing
-                candidate_services = ["12827", "6272", "10704", "10940"]
+                # Priority candidates based on first target URL
+                candidate_services = ["6272", "10704", "10940", "12827"]
                 if urls:
                     first_url = urls[0].lower()
                     if "playkaro" in first_url:
@@ -1000,7 +1000,7 @@ def start_automation_loop(user_id, thread_id=1):
             phone = phone[2:]
             
         print(f"📞 Got Number: {phone} (ID: {activation_id})")
-        print(f"📞 नया नंबर: {phone}\n🌐 API Mode: Target domains: {urls}")
+        print(f"📞 नया नंबर: {phone}\n🌐 API Mode: Background requests initialization...")
 
         success_count = 0
         sms_received_count = 0
@@ -1080,15 +1080,6 @@ def start_automation_loop(user_id, thread_id=1):
 
                     print(f"📡 Form submitted successfully. Waiting for OTP...")
 
-                    # If this is a subsequent domain on the same number, request next SMS (status=3)
-                    if sms_received_count > 0:
-                        try:
-                            print("📡 Requesting next SMS (status=3) from OTP Doctor...")
-                            set_otp_status(activation_id, 3, api_key)
-                            time.sleep(2)
-                        except Exception as status_err:
-                            print(f"⚠️ Failed to request next SMS (status=3): {status_err}")
-
                     # 4. POLL OTP DOCTOR FOR OTP
                     start_time = time.time()
                     extracted_otp = None
@@ -1140,14 +1131,15 @@ def start_automation_loop(user_id, thread_id=1):
                     if not is_verified:
                         raise Exception(f"Verification rejected: {res_verify.get('message', 'Invalid OTP')}")
 
-                    # 6. OPTIONAL API REQUEST & SERVER RESPONSE VALIDATION
+                    # 6. API REQUEST & SERVER RESPONSE VALIDATION LOOP (Final confirmation)
                     from urllib.parse import urlparse
                     parsed = urlparse(formatted_url)
                     target_api_url = f"{parsed.scheme}://{parsed.netloc}/send_otp_touser"
+                    success_received = False
                     retry_count = 0
-                    max_api_retries = 3
+                    max_api_retries = 5
 
-                    while is_automation_running.get(user_id, False) and retry_count < max_api_retries:
+                    while not success_received and is_automation_running.get(user_id, False) and retry_count < max_api_retries:
                         retry_count += 1
                         random_api_phone = str(random.randint(100000000000000, 999999999999999))
                         print(f"📡 Sending API Request (Attempt {retry_count}/{max_api_retries}) for Phone: {random_api_phone}...")
@@ -1158,43 +1150,52 @@ def start_automation_loop(user_id, thread_id=1):
                             "url": host_url
                         }
                         
+                        r_api = session.post(target_api_url, data=api_payload, headers=headers, timeout=15)
                         try:
-                            r_api = session.post(target_api_url, data=api_payload, headers=headers, timeout=10)
-                            try:
-                                server_data = r_api.json()
-                                print(f"📩 Server Data Received: {server_data}")
-                            except:
-                                server_data = {}
+                            server_data = r_api.json()
+                            print(f"📩 Server Data Received: {server_data}")
+                        except:
+                            server_data = {}
 
-                            actual_res = server_data[0] if isinstance(server_data, list) and len(server_data) > 0 else (server_data if isinstance(server_data, dict) else {})
+                        # Normalize list of dicts response format
+                        if isinstance(server_data, list) and len(server_data) > 0:
+                            actual_res = server_data[0]
+                        elif isinstance(server_data, dict):
+                            actual_res = server_data
+                        else:
+                            actual_res = {}
 
-                            if actual_res.get("statusCode") == 200 or "success" in str(actual_res.get("message_class", "")).lower():
-                                print("🎯 Success Response Matched!")
-                                break
-                            else:
-                                print("⚠️ Server response API check mismatched.")
-                                time.sleep(2)
-                        except Exception as api_err:
-                            print(f"⚠️ Optional API check skipped: {api_err}")
+                        if actual_res.get("statusCode") == 200 or "success" in str(actual_res.get("message_class", "")).lower():
+                            print("🎯 Success Response Matched!")
+                            success_received = True
                             break
+                        else:
+                            print("⚠️ Server response failed or mismatched. Retrying in 3 seconds...")
+                            time.sleep(3)
 
-                    # OTP verified -> Save user & record success
-                    save_user(host_url, username, "XnX@1", phone)
-                    success_count += 1
-                    print(f"✅ {host_url} पर पंजीकरण सफल! (Username: {username})")
+                    if success_received:
+                        save_user(host_url, username, "XnX@1", phone)
+                        success_count += 1
+                        print(f"✅ {host_url} पर पंजीकरण सफल!")
+                    else:
+                        raise Exception("API verification failed (did not get success response from server)")
 
                 except Exception as domain_err:
                     print(f"⚠️ Registration failed for {host_url}: {domain_err}")
-                    print(f"🛑 OTP/Registration failed on {host_url}. Cancelling number {phone} to claim refund and retrying with a new number...")
-                    set_otp_status(activation_id, 8, api_key)
-                    activation_cancelled = True
-                    break
+                
+                # At the end of the domain loop iteration, prepare for next SMS if we received one
+                if sms_received_count > 0 and host_url != urls[-1]:
+                    try:
+                        print("📡 Requesting next SMS status=3 to keep channel open...")
+                        set_otp_status(activation_id, 3, api_key)
+                        time.sleep(3)
+                    except Exception as status_err:
+                        print(f"⚠️ Failed to request next SMS (status=3): {status_err}")
 
-            if activation_cancelled or success_count < len(urls):
-                if not activation_cancelled:
-                    print(f"🛑 Not all target domains succeeded on number {phone}. Cancelling number for refund...")
-                    set_otp_status(activation_id, 8, api_key)
-                    activation_cancelled = True
+            if success_count == 0:
+                print("🛑 No domains succeeded. Cancelling number to get refund...")
+                set_otp_status(activation_id, 8, api_key)
+                activation_cancelled = True
                 
                 # Rotate candidate list so we try a different service ID next time
                 if selected_service_id == "auto" and used_service_id in candidate_services:
@@ -1202,16 +1203,16 @@ def start_automation_loop(user_id, thread_id=1):
                     candidate_services.append(used_service_id)
                     print(f"🔄 Rotated failed service {used_service_id} to end. New priority: {candidate_services}")
                     
-                print("⚠️ पंजीकरण अधूरा रहा। नंबर रद्द कर दिया गया है। 3 सेकंड में नए नंबर से प्रयास शुरू होगा...")
+                print("⚠️ सभी डोमेन पर पंजीकरण विफल। नंबर रद्द कर दिया गया है। 5 सेकंड में पुनः प्रयास शुरू होगा...")
             else:
-                print(f"🎉 Successfully registered on ALL {success_count} domains using number {phone}!")
+                print(f"🎉 Successfully registered on {success_count} domains using number {phone}!")
                 print(f"🎉 चक्र पूरा! {success_count} डोमेन पर पंजीकरण सफल। अगला लूप 5 सेकंड में चालू हो रहा है...")
-            time.sleep(3)
+            time.sleep(5)
 
         except Exception as e:
             print("❌ ERROR IN FLOW:", e)
 
-            if not activation_cancelled:
+            if success_count == 0 and not activation_cancelled:
                 try:
                     set_otp_status(activation_id, 8, api_key)
                 except:
@@ -1223,7 +1224,7 @@ def start_automation_loop(user_id, thread_id=1):
                     candidate_services.append(used_service_id)
                     print(f"🔄 Rotated failed service {used_service_id} to end. New priority: {candidate_services}")
 
-            time.sleep(3)
+            time.sleep(5)
 
 
 # ---------------- HTTP SERVER INIT ----------------
